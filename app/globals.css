@@ -1,26 +1,95 @@
-@import "tailwindcss";
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #ffffff;
+  --text: #25364a;
+  --muted: #6c7c90;
+  --card: #ffffff;
+  --accent: #6da8f7;
+  --accent-hover: #5b97ea;
+  --accent-strong: #3b82f6;
+  --pink-soft: #f5e7f0;
+  --success: #13a383;
+  --error: #d93025;
+  --ring: #cfe4ff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0f141b;
+    --text: #e9eef6;
+    --muted: #b8c3d4;
+    --card: #17202a;
+    --accent: #78b2ff;
+    --accent-hover: #67a2f0;
+    --ring: #395a85;
   }
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 100% 0%, rgba(111, 168, 247, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 0% 100%, rgba(111, 168, 247, 0.08), transparent 50%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pulseSoft {
+  0% {
+    box-shadow: 0 0 0 0 rgba(236, 90, 148, 0.35);
+  }
+
+  70% {
+    box-shadow: 0 0 0 12px rgba(236, 90, 148, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(236, 90, 148, 0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -40px 0;
+  }
+
+  100% {
+    background-position: 40px 0;
+  }
 }
