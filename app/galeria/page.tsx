@@ -6,42 +6,40 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 type Item = { name: string; path: string; type: string; size: number }
 type Group = { date: string; items: Item[] }
 
-function isImage(t: string) {
-  return t === 'image'
-}
-function isVideo(t: string) {
-  return t === 'video'
-}
+const isImage = (t: string) => t === 'image'
+const isVideo = (t: string) => t === 'video'
 
 export default function Galeria() {
   const [groups, setGroups] = useState<Group[]>([])
   const [error, setError] = useState<string | null>(null)
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
-  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map())
+
   const viewerVideoRef = useRef<HTMLVideoElement | null>(null)
 
+  /* =====================
+    LOAD
+  ===================== */
   useEffect(() => {
-    const run = async () => {
-      try {
-        const res = await fetch('/api/list', { cache: 'no-store' })
-        if (!res.ok) throw new Error('Falha ao carregar lista')
-        const data = await res.json()
-        setGroups(data?.dates || [])
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Erro ao carregar galeria'
-        setError(msg)
-      }
-    }
-    run()
+    fetch('/api/list', { cache: 'no-store' })
+      .then((r) => {
+        if (!r.ok) throw new Error('Erro ao carregar galeria')
+        return r.json()
+      })
+      .then((data) => setGroups(data?.dates || []))
+      .catch((e) => setError(e.message))
   }, [])
 
-  const allItems = useMemo(() => {
-    return groups.flatMap((g) => g.items)
-  }, [groups])
+  const allItems = useMemo(
+    () => groups.flatMap((g) => g.items),
+    [groups]
+  )
 
+  /* =====================
+    VIEWER CONTROL
+  ===================== */
   function openViewerByPath(path: string) {
-    const i = allItems.findIndex((it) => it.path === path)
-    if (i >= 0) setViewerIndex(i)
+    const index = allItems.findIndex((i) => i.path === path)
+    if (index >= 0) setViewerIndex(index)
   }
 
   function closeViewer() {
@@ -60,204 +58,82 @@ export default function Galeria() {
     )
   }
 
-  function toggleFullscreen(el?: HTMLElement | null) {
-    if (typeof document === 'undefined') return
-    const d = document as Document & {
-      webkitExitFullscreen?: () => Promise<void>
-      msExitFullscreen?: () => Promise<void>
-    }
-    const elem = el ?? null
-    if (d.fullscreenElement) {
-      if (d.exitFullscreen) {
-        d.exitFullscreen()
-        return
-      }
-      if (d.webkitExitFullscreen) {
-        d.webkitExitFullscreen()
-        return
-      }
-      if (d.msExitFullscreen) {
-        d.msExitFullscreen()
-        return
-      }
-      return
-    }
-    const target = elem ?? undefined
-    type FullscreenTarget = HTMLElement & {
-      webkitRequestFullscreen?: () => Promise<void>
-      msRequestFullscreen?: () => Promise<void>
-    }
-    const fsTarget = target as FullscreenTarget | undefined
-    if (fsTarget?.requestFullscreen) {
-      void fsTarget.requestFullscreen()
-    } else if (fsTarget?.webkitRequestFullscreen) {
-      void fsTarget.webkitRequestFullscreen()
-    } else if (fsTarget?.msRequestFullscreen) {
-      void fsTarget.msRequestFullscreen()
-    }
-  }
-
-  function toggleFullscreenCard(item: Item) {
-    const v = videoRefs.current.get(item.path)
-    if (!v) return
-    toggleFullscreen(v)
-  }
-
-  function toggleFullscreenViewer() {
-    const v = viewerVideoRef.current
-    if (!v) return
-    toggleFullscreen(v)
-  }
-
+  /* =====================
+    KEYBOARD NAV
+  ===================== */
   useEffect(() => {
     if (viewerIndex === null) return
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        closeViewer()
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        prevItem()
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        nextItem()
-      } else if (e.key.toLowerCase() === 'f') {
-        e.preventDefault()
-        toggleFullscreenViewer()
-      }
+      if (e.key === 'Escape') closeViewer()
+      if (e.key === 'ArrowLeft') prevItem()
+      if (e.key === 'ArrowRight') nextItem()
     }
+
     window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [viewerIndex, nextItem, prevItem, toggleFullscreenViewer])
+    return () => window.removeEventListener('keydown', onKey)
+  }, [viewerIndex])
 
-  async function handleDelete(item: Item) {
-    const ok = typeof window !== 'undefined' ? window.confirm('Excluir este arquivo?') : true
-    if (!ok) return
-    try {
-      const res = await fetch(`/api/media?p=${encodeURIComponent(item.path)}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) throw new Error('Falha ao excluir arquivo')
-      setGroups((gs) => {
-        const next = gs
-          .map((g) => ({
-            ...g,
-            items: g.items.filter((it) => it.path !== item.path),
-          }))
-          .filter((g) => g.items.length > 0)
-        return next
-      })
-      setViewerIndex((vi) => {
-        if (vi === null) return null
-        const current = allItems[vi]
-        if (!current) return null
-        if (current.path === item.path) return null
-        return vi
-      })
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Erro ao excluir'
-      if (typeof window !== 'undefined') window.alert(`❌ ${msg}`)
-    }
-  }
-
-  function handlePlay(item: Item) {
-    const v = videoRefs.current.get(item.path)
-    if (v) {
-      try {
-        void v.play()
-      } catch { }
-    }
-  }
-
+  /* =====================
+    RENDER
+  ===================== */
   return (
     <main className={styles.page}>
-      <div className={styles.header}>
+      <header className={styles.header}>
         <h1 className={styles.title}>💞 Galeria dos Noivos</h1>
-        <p className={styles.subtitle}>As memórias enviadas pelos convidados</p>
-      </div>
+        <p className={styles.subtitle}>
+          As memórias enviadas pelos convidados
+        </p>
+      </header>
 
       {error && <p className={styles.empty}>❌ {error}</p>}
-
       {!error && groups.length === 0 && (
         <p className={styles.empty}>Ainda não há arquivos enviados.</p>
       )}
 
-      {groups.map((g) => (
-        <section key={g.date} className={styles.section}>
-          <h2 className={styles.sectionTitle}>{g.date}</h2>
+      {groups.map((group) => (
+        <section key={group.date} className={styles.section}>
+          <h2 className={styles.sectionTitle}>{group.date}</h2>
+
           <div className={styles.grid}>
-            {g.items.map((item) => {
+            {group.items.map((item) => {
               const src = `/api/media?p=${encodeURIComponent(item.path)}`
+
               return (
-                <div className={styles.item} key={item.path}>
+                <div
+                  key={item.path}
+                  className={styles.item}
+                  onClick={() => openViewerByPath(item.path)}
+                >
                   {isImage(item.type) && (
                     <img
                       src={src}
                       alt={item.name}
-                      onClick={() => openViewerByPath(item.path)}
+                      loading="lazy"
                     />
                   )}
+
                   {isVideo(item.type) && (
-                    <video
-                      src={src}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      ref={(el) => {
-                        if (el) videoRefs.current.set(item.path, el)
-                        else videoRefs.current.delete(item.path)
-                      }}
-                    />
-                  )}
-                  <div className={styles.controls}>
-                    <div className={styles.controlBar}>
-                      <a
-                        href={src}
-                        download={item.name}
-                        className={styles.controlButton}
-                        aria-label="Baixar"
-                        title="Baixar"
-                      >
-                        ⬇️
-                      </a>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className={styles.controlButton}
-                        aria-label="Excluir"
-                        title="Excluir"
-                      >
-                        🗑️
-                      </button>
-                      {isVideo(item.type) && (
-                        <button
-                          onClick={() => handlePlay(item)}
-                          className={styles.controlButton}
-                          aria-label="Play"
-                          title="Play"
-                        >
-                          ▶️
-                        </button>
-                      )}
-                      {isVideo(item.type) && (
-                        <button
-                          onClick={() => toggleFullscreenCard(item)}
-                          className={styles.controlButton}
-                          aria-label="Tela cheia"
-                          title="Tela cheia"
-                        >
-                          ⛶
-                        </button>
-                      )}
+                    <div className={styles.videoThumb}>
+                      <video
+                        src={src}
+                        muted
+                        preload="metadata"
+                        playsInline
+                      />
+                      <span className={styles.playOverlay}>▶</span>
                     </div>
-                  </div>
+                  )}
                 </div>
               )
             })}
           </div>
         </section>
       ))}
+
+      {/* =====================
+          VIEWER (GALERIA)
+      ===================== */}
       {viewerIndex !== null && allItems[viewerIndex] && (
         <div
           className={styles.viewer}
@@ -265,68 +141,64 @@ export default function Galeria() {
           aria-modal="true"
           onClick={closeViewer}
         >
-          {(() => {
-            const it = allItems[viewerIndex]
-            return (
-              <div className={styles.viewerHeader}>
-                {it.name}
-              </div>
-            )
-          })()}
           <div
             className={styles.viewerBody}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* HEADER */}
+            <header className={styles.viewerHeader}>
+              <strong>{allItems[viewerIndex].name}</strong>
+              <span>
+                {viewerIndex + 1} de {allItems.length}
+              </span>
+            </header>
+
+            {/* NAV */}
             <button
               className={styles.viewerClose}
               onClick={closeViewer}
               aria-label="Fechar"
-              title="Fechar"
             >
               ✕
             </button>
+
             <button
               className={styles.viewerPrev}
               onClick={prevItem}
               aria-label="Anterior"
-              title="Anterior"
             >
               ‹
             </button>
+
             <button
               className={styles.viewerNext}
               onClick={nextItem}
               aria-label="Próximo"
-              title="Próximo"
             >
               ›
             </button>
+
             <div className={styles.viewerHitLeft} onClick={prevItem} />
             <div className={styles.viewerHitRight} onClick={nextItem} />
-            {(() => {
-              const it = allItems[viewerIndex]
-              const src = `/api/media?p=${encodeURIComponent(it.path)}`
-              return isImage(it.type) ? (
-                <img src={src} alt={it.name} />
-              ) : (
-                <video
-                  src={src}
-                  controls
-                  playsInline
-                  autoPlay
-                  ref={viewerVideoRef}
-                />
-              )
-            })()}
-            {viewerIndex !== null && isVideo(allItems[viewerIndex].type) && (
-              <button
-                className={styles.viewerFs}
-                onClick={toggleFullscreenViewer}
-                aria-label="Tela cheia"
-                title="Tela cheia"
-              >
-                ⛶
-              </button>
+
+            {/* MEDIA */}
+            {isImage(allItems[viewerIndex].type) ? (
+              <img
+                src={`/api/media?p=${encodeURIComponent(
+                  allItems[viewerIndex].path
+                )}`}
+                alt={allItems[viewerIndex].name}
+              />
+            ) : (
+              <video
+                src={`/api/media?p=${encodeURIComponent(
+                  allItems[viewerIndex].path
+                )}`}
+                controls
+                autoPlay
+                playsInline
+                ref={viewerVideoRef}
+              />
             )}
           </div>
         </div>

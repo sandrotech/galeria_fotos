@@ -93,3 +93,10 @@ body {
     background-position: 40px 0;
   }
 }
+
+img {
+  max-width: 100%;
+  height: auto;
+  max-height: 100svh;
+  display: block;
+}

@@ -168,9 +168,9 @@
 
  .viewerBody {
    width: clamp(320px, 60vw, 680px);
-   height: 92vh;
+  height: 92svh;
    max-width: 1000px;
-   max-height: 720px;
+  max-height: min(720px, calc(100svh - 40px));
    position: relative;
    border-radius: 12px;
    overflow: hidden;
