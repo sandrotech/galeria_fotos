@@ -18,6 +18,7 @@ export default function Galeria() {
   const [error, setError] = useState<string | null>(null)
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map())
+  const viewerVideoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     const run = async () => {
@@ -59,6 +60,55 @@ export default function Galeria() {
     )
   }
 
+  function toggleFullscreen(el?: HTMLElement | null) {
+    if (typeof document === 'undefined') return
+    const d = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>
+      msExitFullscreen?: () => Promise<void>
+    }
+    const elem = el ?? null
+    if (d.fullscreenElement) {
+      if (d.exitFullscreen) {
+        d.exitFullscreen()
+        return
+      }
+      if (d.webkitExitFullscreen) {
+        d.webkitExitFullscreen()
+        return
+      }
+      if (d.msExitFullscreen) {
+        d.msExitFullscreen()
+        return
+      }
+      return
+    }
+    const target = elem ?? undefined
+    type FullscreenTarget = HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>
+      msRequestFullscreen?: () => Promise<void>
+    }
+    const fsTarget = target as FullscreenTarget | undefined
+    if (fsTarget?.requestFullscreen) {
+      void fsTarget.requestFullscreen()
+    } else if (fsTarget?.webkitRequestFullscreen) {
+      void fsTarget.webkitRequestFullscreen()
+    } else if (fsTarget?.msRequestFullscreen) {
+      void fsTarget.msRequestFullscreen()
+    }
+  }
+
+  function toggleFullscreenCard(item: Item) {
+    const v = videoRefs.current.get(item.path)
+    if (!v) return
+    toggleFullscreen(v)
+  }
+
+  function toggleFullscreenViewer() {
+    const v = viewerVideoRef.current
+    if (!v) return
+    toggleFullscreen(v)
+  }
+
   useEffect(() => {
     if (viewerIndex === null) return
     const onKey = (e: KeyboardEvent) => {
@@ -71,13 +121,16 @@ export default function Galeria() {
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
         nextItem()
+      } else if (e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        toggleFullscreenViewer()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('keydown', onKey)
     }
-  }, [viewerIndex])
+  }, [viewerIndex, nextItem, prevItem, toggleFullscreenViewer])
 
   async function handleDelete(item: Item) {
     const ok = typeof window !== 'undefined' ? window.confirm('Excluir este arquivo?') : true
@@ -187,6 +240,16 @@ export default function Galeria() {
                           ▶️
                         </button>
                       )}
+                      {isVideo(item.type) && (
+                        <button
+                          onClick={() => toggleFullscreenCard(item)}
+                          className={styles.controlButton}
+                          aria-label="Tela cheia"
+                          title="Tela cheia"
+                        >
+                          ⛶
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -202,6 +265,14 @@ export default function Galeria() {
           aria-modal="true"
           onClick={closeViewer}
         >
+          {(() => {
+            const it = allItems[viewerIndex]
+            return (
+              <div className={styles.viewerHeader}>
+                {it.name}
+              </div>
+            )
+          })()}
           <div
             className={styles.viewerBody}
             onClick={(e) => e.stopPropagation()}
@@ -238,9 +309,25 @@ export default function Galeria() {
               return isImage(it.type) ? (
                 <img src={src} alt={it.name} />
               ) : (
-                <video src={src} controls playsInline autoPlay />
+                <video
+                  src={src}
+                  controls
+                  playsInline
+                  autoPlay
+                  ref={viewerVideoRef}
+                />
               )
             })()}
+            {viewerIndex !== null && isVideo(allItems[viewerIndex].type) && (
+              <button
+                className={styles.viewerFs}
+                onClick={toggleFullscreenViewer}
+                aria-label="Tela cheia"
+                title="Tela cheia"
+              >
+                ⛶
+              </button>
+            )}
           </div>
         </div>
       )}

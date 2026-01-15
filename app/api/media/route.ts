@@ -4,9 +4,28 @@ import fs from 'node:fs'
 
 export const runtime = 'nodejs'
 
-function isSafePath(p: string) {
+function uploadsRoot(): string {
+    const envDir = process.env.UPLOAD_DIR
+    return envDir
+        ? (path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir))
+        : path.join(process.cwd(), 'uploads')
+}
+
+function resolveAbsFromParam(p: string): string | null {
+    const root = uploadsRoot()
     const norm = p.replace(/\\/g, '/')
-    return norm.startsWith('uploads/') && !norm.includes('..')
+    if (norm.includes('..')) return null
+    if (norm.startsWith('uploads/')) {
+        const abs = path.join(process.cwd(), norm)
+        const relToRoot = path.relative(root, abs).replace(/\\/g, '/')
+        if (relToRoot.startsWith('..')) return null
+        return abs
+    } else {
+        const abs = path.join(root, norm)
+        const relCheck = path.relative(root, abs).replace(/\\/g, '/')
+        if (relCheck.startsWith('..')) return null
+        return abs
+    }
 }
 
 function mimeFromExt(ext: string) {
@@ -39,11 +58,10 @@ function nodeToWeb(stream: fs.ReadStream): ReadableStream {
 export async function GET(req: NextRequest) {
     const raw = req.nextUrl.searchParams.get('p') || ''
     const p = raw.replace(/\\/g, '/')
-    if (!isSafePath(p)) {
+    const abs = resolveAbsFromParam(p)
+    if (!abs) {
         return NextResponse.json({ error: 'Parâmetro inválido' }, { status: 400 })
     }
-
-    const abs = path.join(process.cwd(), p)
     if (!fs.existsSync(abs)) {
         return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 })
     }
@@ -94,10 +112,10 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     const raw = req.nextUrl.searchParams.get('p') || ''
     const p = raw.replace(/\\/g, '/')
-    if (!isSafePath(p)) {
+    const abs = resolveAbsFromParam(p)
+    if (!abs) {
         return NextResponse.json({ error: 'Parâmetro inválido' }, { status: 400 })
     }
-    const abs = path.join(process.cwd(), p)
     if (!fs.existsSync(abs)) {
         return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 })
     }

@@ -16,7 +16,10 @@ function guessTypeFromExt(ext: string) {
 }
 
 export async function GET() {
-  const uploadsRoot = path.join(process.cwd(), 'uploads')
+  const envDir = process.env.UPLOAD_DIR
+  const uploadsRoot = envDir
+    ? (path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir))
+    : path.join(process.cwd(), 'uploads')
   if (!fs.existsSync(uploadsRoot)) {
     return NextResponse.json({ dates: [] }, { status: 200 })
   }
@@ -42,7 +45,7 @@ export async function GET() {
         const st = fs.statSync(full)
         const ext = path.extname(f.name)
         const type = guessTypeFromExt(ext)
-        const rel = path.relative(process.cwd(), full).split(path.sep).join('/')
+        const rel = path.relative(uploadsRoot, full).split(path.sep).join('/')
         return {
           name: f.name,
           path: rel,

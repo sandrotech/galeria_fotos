@@ -32,7 +32,10 @@ export async function POST(req: Request) {
     )
   }
 
-  const uploadsRoot = path.join(process.cwd(), 'uploads')
+  const envDir = process.env.UPLOAD_DIR
+  const uploadsRoot = envDir
+    ? (path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir))
+    : path.join(process.cwd(), 'uploads')
   ensureDir(uploadsRoot)
   const today = new Date()
   const yyyy = today.getFullYear()
@@ -94,7 +97,7 @@ export async function POST(req: Request) {
           return
         }
         ws.end()
-        const rel = path.relative(process.cwd(), finalPath).split(path.sep).join('/')
+        const rel = path.relative(uploadsRoot, finalPath).split(path.sep).join('/')
         saved.push({
           name: finalName,
           path: rel,

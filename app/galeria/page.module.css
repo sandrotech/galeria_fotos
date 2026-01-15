@@ -151,8 +151,23 @@
    padding: 20px;
  }
 
+ .viewerHeader {
+   position: fixed;
+   top: 12px;
+   left: 50%;
+   transform: translateX(-50%);
+   background: rgba(0, 0, 0, 0.85);
+   color: #fff;
+   padding: 8px 14px;
+   border-radius: 10px;
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+   font-weight: 600;
+   letter-spacing: 0.2px;
+   pointer-events: none;
+ }
+
  .viewerBody {
-   width: 92vw;
+   width: clamp(320px, 60vw, 680px);
    height: 92vh;
    max-width: 1000px;
    max-height: 720px;
@@ -162,6 +177,7 @@
    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
    background: #0b1626;
    animation: viewerPop 220ms ease-out both;
+   outline: 1px solid rgba(255, 255, 255, 0.08);
  }
 
  .viewerBody img,
@@ -201,8 +217,8 @@
    background: rgba(255, 255, 255, 0.92);
    color: #1e2a3b;
    border-radius: 999px;
-   width: 40px;
-   height: 40px;
+   width: 48px;
+   height: 48px;
    display: inline-flex;
    align-items: center;
    justify-content: center;
@@ -226,6 +242,11 @@
  .viewerClose {
    top: 16px;
    right: 16px;
+ }
+
+ .viewerFs {
+   top: 16px;
+   left: 16px;
  }
 
  .viewerPrev {
