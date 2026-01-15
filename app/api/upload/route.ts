@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import path from 'node:path'
 import fs from 'node:fs'
 import { Readable } from 'node:stream'
+import type { ReadableStream as WebReadableStream } from 'node:stream/web'
 import crypto from 'node:crypto'
 import Busboy from 'busboy'
 
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
   const saved: { name: string; path: string; type: string; size: number }[] = []
   const errors: string[] = []
 
-  const nodeStream = Readable.fromWeb(req.body as unknown as ReadableStream)
+  const nodeStream = Readable.fromWeb(req.body as unknown as WebReadableStream)
 
   await new Promise<void>((resolve, reject) => {
     const bb = Busboy({
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
       limits: { files: MAX_FILES },
     })
 
-    bb.on('file', (_fieldname, file, info) => {
+    bb.on('file', (_fieldname: string, file: NodeJS.ReadableStream, info: { filename?: string; mimeType?: string; mimetype?: string }) => {
       const mime = info.mimeType || info.mimetype || ''
       const isImage = mime.startsWith('image/')
       const isVideo = mime.startsWith('video/')
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
       let tooLarge = false
       const ws = fs.createWriteStream(finalPath)
 
-      file.on('data', (chunk) => {
+      file.on('data', (chunk: Buffer) => {
         received += chunk.length
         if (received > maxBytes) {
           tooLarge = true
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
       file.on('end', () => {
         if (tooLarge) {
           if (fs.existsSync(finalPath)) {
-            try { fs.unlinkSync(finalPath) } catch {}
+            try { fs.unlinkSync(finalPath) } catch { }
           }
           errors.push(
             isImage
@@ -102,8 +103,8 @@ export async function POST(req: Request) {
         })
       })
 
-      file.on('error', (err) => {
-        try { ws.destroy() } catch {}
+      file.on('error', (err: Error) => {
+        try { ws.destroy() } catch { }
         errors.push(`Erro ao salvar ${safeOriginal}: ${err.message}`)
       })
     })
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
       errors.push(`Máximo de ${MAX_FILES} arquivos por envio`)
     })
 
-    bb.on('error', (err) => reject(err))
+    bb.on('error', (err: Error) => reject(err))
     bb.on('finish', () => resolve())
 
     nodeStream.pipe(bb)
