@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Great_Vibes } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,6 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const greatVibes = Great_Vibes({
+  variable: "--font-title",
+  subsets: ["latin"],
+  weight: "400",
+});
 export const metadata: Metadata = {
   title: "Casamento • Galeria de Memórias",
   description: "Envie fotos e vídeos para celebrar este momento",
@@ -24,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${greatVibes.variable}`}>
         {children}
       </body>
     </html>

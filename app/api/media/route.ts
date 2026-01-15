@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'node:path'
 import fs from 'node:fs'
-import { Readable } from 'node:stream'
 
 export const runtime = 'nodejs'
 

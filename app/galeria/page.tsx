@@ -24,8 +24,9 @@ export default function Galeria() {
         if (!res.ok) throw new Error('Falha ao carregar lista')
         const data = await res.json()
         setGroups(data?.dates || [])
-      } catch (e: any) {
-        setError(e?.message || 'Erro ao carregar galeria')
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Erro ao carregar galeria'
+        setError(msg)
       }
     }
     run()
