@@ -90,3 +90,21 @@ export async function GET(req: NextRequest) {
         },
     })
 }
+
+export async function DELETE(req: NextRequest) {
+    const raw = req.nextUrl.searchParams.get('p') || ''
+    const p = raw.replace(/\\/g, '/')
+    if (!isSafePath(p)) {
+        return NextResponse.json({ error: 'Parâmetro inválido' }, { status: 400 })
+    }
+    const abs = path.join(process.cwd(), p)
+    if (!fs.existsSync(abs)) {
+        return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 })
+    }
+    try {
+        fs.unlinkSync(abs)
+        return NextResponse.json({ success: true }, { status: 200 })
+    } catch {
+        return NextResponse.json({ error: 'Falha ao excluir' }, { status: 500 })
+    }
+}
